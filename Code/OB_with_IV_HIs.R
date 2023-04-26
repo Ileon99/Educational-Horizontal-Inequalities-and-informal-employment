@@ -10,11 +10,13 @@ library(AER)
 library(plm)
 library(feather)
 
+#Load Enemdu 
+
+Enemdu <- read_feather("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/Enemdu.feather")
+
 ###########################  Instrumental Variables with a logit ############
 
 #log transformation to avoid extremes
-
-summary(Enemdu$education_y)
 
 Enemdu$leduc <- ifelse(Enemdu$education_y < 1,0,log(Enemdu$education_y))
 
@@ -24,57 +26,64 @@ Enemdu$lincome <- ifelse(Enemdu$h_tot_labour_income_pc < 1,0,log(Enemdu$h_tot_la
 
 Enemdu$lage <- ifelse(Enemdu$age < 1 ,0,log(Enemdu$age))
 
-Enemdu$lformal_house <- ifelse(Enemdu$formal_per_house < 1 ,0,log(Enemdu$formal_per_house))
-
-Enemdu$lnhousehold <- ifelse(Enemdu$nhousehold.y < 1 ,0,log(Enemdu$nhousehold.y))
-
-Enemdu$lkid_house <- ifelse(Enemdu$h_kid < 1 ,0,log(Enemdu$h_kid))
 
 # IV model
 
 model1 <- lm(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
+               nhousehold.y + h_kid + h_teen + h_adult +
                agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
                managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces 
-             + as.factor(province), data=Enemdu)
+             + as.factor(province) + as.factor(period), data=Enemdu)
+
+remove(model1)
 
 stargazer(model1, type = "text")
 
-model2  <- glm(informal ~ leduc + lformal_house + migrant + rural + lnhousehold + lkid_house +
-                 lfam_educ + lage  + sex + lincome +
+model2  <- glm(informal ~ leduc + formal_per_house + migrant + rural +
+                 nhousehold.y + h_kid + h_teen + h_adult +
+                 lfam_educ + age  + sex + lincome +
                  agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
                  managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces 
+               + as.factor(province) + as.factor(period)
                , data=Enemdu, family=binomial(link=logit))
 
-# Estimate fixed-effects logistic regression model with household fixed effects
-model2 <- plm(informal ~ lformal_house + migrant + rural + lnhousehold + lkid_house +
-                lfam_educ + lage + sex + lincome +
-                agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
-                managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces +
-                as.factor(province),
-              data = Enemdu, 
-              index = "panel_id", 
-              model = "within",
-              effect = "twoways",
-              effect.labels = c("Household", "Time"),
-              family = binomial(link = logit))
+#saveRDS(model2, "model_2.rds")
+
+remove(model2)
+
+#model2<- readRDS("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/model_2.rds")
 
 stargazer(model2, type = "text")
 
 Enemdu$IVinf <- model2$fitted.values
 
-model3 <- lm(leduc ~ IVinf + lfam_educ + lage  + sex + lincome  + as.factor(period), data=Enemdu)
+Enemdu$resid <- model2$residuals
+
+remove(model2)
+
+model3 <- lm(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
+               nhousehold.y + h_kid + h_teen + h_adult +
+               agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
+               managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces 
+             + as.factor(province) + as.factor(period) + resid , data=Enemdu)
+
+# save the model 3 object to a file
+#saveRDS(model3, "model_3.rds")
+
+remove(model3)
+
+#model3<- readRDS("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/model_3.rds")
 
 stargazer(coeftest(model3, vcov=vcovHC(model3,type="HC0")), type = "text")
 
 #Perfect before the IV we see that informality has a positive coefficient after using the IV we see that it is negative 
 
-Enemdu$resid2 <- model3$residuals
-
-test_valid <- lm(resid2 ~ lformal_house + migrant + rural + lnhousehold + lkid_house + lfam_educ + lage  + sex + lincome + as.factor(period), data = Enemdu)
-
-summary(test_valid)
 
 #################################### Decomposition ############################
 
-OB_reg <- oaxaca(leduc ~ IVinf + lfam_educ + lage  + sex + lincome + as.factor(period) + as.factor(province)| indigenous, data = Enemdu)
+OB_reg <- oaxaca(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
+                   nhousehold.y + h_kid + h_teen + h_adult +
+                   agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
+                   managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces 
+                 + as.factor(province) + as.factor(period) + resid| indigenous, data = Enemdu)
 

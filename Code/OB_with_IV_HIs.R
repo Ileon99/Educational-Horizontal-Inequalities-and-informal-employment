@@ -51,13 +51,13 @@ model2  <- glm(informal ~ leduc + formal_per_house + migrant + rural +
 
 remove(model2)
 
-#model2<- readRDS("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/model_2.rds")
+model2<- readRDS("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/model_2.rds")
 
 stargazer(model2, type = "text")
 
 Enemdu$IVinf <- model2$fitted.values
 
-Enemdu$resid <- model2$residuals
+Enemdu$resid2SLS <- model2$residuals
 
 remove(model2)
 
@@ -81,9 +81,18 @@ stargazer(coeftest(model3, vcov=vcovHC(model3,type="HC0")), type = "text")
 
 #################################### Decomposition ############################
 
+
+Enemdu2019 <- Enemdu[Enemdu$period == 2019,]
+
+#reference for occupations are clerical support
+#reference for secort is agriculture
+
 OB_reg <- oaxaca(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
                    nhousehold.y + h_kid + h_teen + h_adult +
-                   agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
-                   managers + professionals + technicians + clerical_support + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces 
-                 + as.factor(province) + as.factor(period) + resid| indigenous, data = Enemdu)
+                  manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services +
+                   managers + professionals + technicians + services_and_sales + skilled_agricultural + craft_related_trades + plant_machine_operators + elementary_occupations + armed_forces + resid2SLS | indigenous, data = Enemdu2019)
+
+
+OB_reg$threefold$variables
+
 

@@ -61,6 +61,8 @@ model3 <- lm(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
                nhousehold.y + h_kid + h_teen + h_adult +
                resid2SLS , data=Enemdu)
 
+Enemdu$residfin <- model3$residuals
+
 # save the model 3 object to a file
 #saveRDS(model3, "model_3.rds")
 
@@ -162,6 +164,26 @@ mod_within <- felm(GGini2 ~ informal_rate  + educ_mean + lincome + lfam_educ | p
 
 summary(mod_within)
 
+######################## Validity of the instruments ##########################
+
+esti_2sls=ivreg(formula = leduc ~ informal + lfam_educ + age  + sex + lincome + rural +
+                  nhousehold.y + h_kid + h_teen + h_adult | leduc + formal_per_house + migrant + rural +
+                  nhousehold.y + h_kid + h_teen + h_adult +
+                  lfam_educ + age  + sex + lincome +
+                  agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services, data = Enemdu)
+
+summary(esti_2sls)
+
+summary(esti_2sls, diagnostics = TRUE)
+
+#Hansen-Sargan test :
+
+HS_test <- lm(residfin ~ leduc + formal_per_house + migrant + rural +
+                nhousehold.y + h_kid + h_teen + h_adult +
+                lfam_educ + age  + sex + lincome +
+                agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services, data = Enemdu)
+
+summary(HS_test)
 
 ######################## Sub groups regressions ###############################
 

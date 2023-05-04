@@ -75,6 +75,7 @@ Enemdu$galapagos[Enemdu$province == "GALAPAGOS"]=1
 
 model1 <- lm(leduc ~ informal + lfam_educ + age  + sex + lincome + rural +
                nhousehold.y + h_kid + h_teen + h_adult+
+               agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services+
                sierra + amazonia + galapagos, data=Enemdu)
 
 stargazer(model1, type = "text")
@@ -96,12 +97,10 @@ Enemdu$IVinf <- model2$fitted.values
 
 Enemdu$resid2SLS <- model2$residuals
 
-remove(model2)
-
-model3 <- lm(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
+model3 <- lm(leduc ~ IVinf + lfam_educ + age  + sex + lincome + rural +
                nhousehold.y + h_kid + h_teen + h_adult +
-               sierra + amazonia + galapagos +
-               resid2SLS , data=Enemdu)
+               agriculture + manufacturing + construction + retail + information + financial + realestate + scientific + public + other_services+
+               sierra + amazonia + galapagos , data=Enemdu)
 
 Enemdu$residfin <- model3$residuals
 
@@ -111,7 +110,7 @@ Enemdu$residfin <- model3$residuals
 
 #model3<- readRDS("C:/Users/ignac/OneDrive/Documentos/PHD/Educ_HIs/Data/model_3.rds")
 
-stargazer(coeftest(model3, vcov=vcovHC(model3,type="HC0")), type = "text")
+stargazer(coeftest(model1, vcov=vcovHC(model3,type="HC0")),coeftest(model2, vcov=vcovHC(model3,type="HC0")), coeftest(model3, vcov=vcovHC(model3,type="HC0")))
 
 #Perfect before the IV we see that informality has a positive coefficient after using the IV we see that it is negative 
 
@@ -119,17 +118,52 @@ stargazer(coeftest(model3, vcov=vcovHC(model3,type="HC0")), type = "text")
 #################################### Decomposition ############################
 
 
-OB_reg <- oaxaca(leduc ~ informal + lfam_educ + lage  + sex + lincome + rural +
+OB_reg <- oaxaca(education_y ~ IVinf + lfam_educ + lage  + sex + lincome + rural +
                    nhousehold.y + h_kid + h_teen + h_adult +
-                   sierra + amazonia + galapagos +
-                  + resid2SLS | indigenous, data = Enemdu)
+                   agriculture + manufacturing + construction + retail + information + financial + scientific + public + other_services+
+                   sierra + amazonia + galapagos  | indigenous, data = Enemdu)
 
 
-OB_reg$threefold$variables
+OB_reg$y
 
-plot(OB_reg)
+#Look at the results of the threefold OB
 
-remove(model1, model3, OB_reg)
+OB_reg$threefold$overall
+
+#The results of the threefold decomposition suggest that, of the 3.68 years of difference, 3.28 can be attributed to group differences in characteristics, -0.12 years to differences in coefficients, and 0.52 in the interaction.
+#The negative sign of the coefficients can ve accounted by the intercept that is very low (less than -25)
+
+#Therefore we examine the endowments and coefficients components of the decomposition variable by variable. 
+
+pdf("OB_reg1.pdf")
+
+plot(OB_reg,components=c("endowments","coefficients"))
+
+dev.off()
+
+#Figure show the estimations results for each variable, with the error bars that indivate 95% confidence variable.
+
+#In the endowments components most of the variables are not statiscally significant.
+#We only find a significant effect for fitted values of informal employment, the logarithm of the education years mean of the household
+#the logarithm of the age, the number of adults in the household, the labour income and working in a scientific sector. 
+#However, it seems that a significant portion of indigenous education gap is driven by group difference in the proportion of individuals with an informal employment and by the education of their family. 
+
+summary(OB_reg$reg$reg.pooled.2)$coefficients["IVinf",]
+
+#Individuals that have an informal employment are less educated
+
+OB_reg$x$x.mean.diff["IVinf"]
+
+#The negative value of the difference between the frequency of informal employment for indigenous people indicates that more indigenous have an informal employment
+#Therefore, employment composition of indigenous and non-indigenous accounts for some portion indigenous' lower education
+
+#When we study the coefficients component more variables have a significant effec, informal employment, education family, age, income
+#rural residence. The coefficient of the nuber of adults reduce the gap. 
+
+OB_reg$beta$beta.diff["IVinf"]
+
+#The difference in the informal employment coefficient between indigenous and non-indigenous shows that the education payof of working formally 
+#is higher for non-indigenous than for indiginous by almost 12 years. 
 
 ############################## Informal employment on Horizontal Inequalities FE ###
 
